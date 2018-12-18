@@ -11,6 +11,9 @@ import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.view.ActionMode;
+import android.support.v7.widget.DividerItemDecoration;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -26,6 +29,7 @@ import com.dougkeen.bart.R;
 import com.dougkeen.bart.controls.Ticker;
 import com.dougkeen.bart.controls.Ticker.TickSubscriber;
 import com.dougkeen.bart.data.FavoritesArrayAdapter;
+import com.dougkeen.bart.data.StationPairAdapter;
 import com.dougkeen.bart.model.Alert;
 import com.dougkeen.bart.model.Alert.AlertList;
 import com.dougkeen.bart.model.Constants;
@@ -48,6 +52,7 @@ import org.androidannotations.annotations.ViewById;
 import org.androidannotations.rest.spring.annotations.RestService;
 
 import java.util.Calendar;
+import java.util.List;
 import java.util.TimeZone;
 
 @EActivity(R.layout.main)
@@ -68,6 +73,7 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
     private ActionMode mActionMode;
 
     private FavoritesArrayAdapter mRoutesAdapter;
+    private StationPairAdapter stationPairAdapter;
 
     @App
     BartRunnerApplication app;
@@ -79,7 +85,7 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
     ElevatorClient elevatorClient;
 
     @ViewById(android.R.id.list)
-    DragSortListView listView;
+    RecyclerView listView;
 
     @ViewById(R.id.quickLookupButton)
     Button quickLookupButton;
@@ -95,25 +101,25 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
         DialogFragment dialog = new QuickRouteDialogFragment();
         dialog.show(getSupportFragmentManager(), QuickRouteDialogFragment.TAG);
     }
-
-    @ItemClick(android.R.id.list)
-    void listItemClicked(StationPair item) {
-        Intent intent = new Intent(RoutesListActivity.this,
-                ViewDeparturesActivity.class);
-        intent.putExtra(Constants.STATION_PAIR_EXTRA, item);
-        startActivity(intent);
-    }
-
-    @ItemLongClick(android.R.id.list)
-    void listItemLongClick(StationPair item) {
-        if (mActionMode != null) {
-            mActionMode.finish();
-        }
-
-        mCurrentlySelectedStationPair = item;
-
-        startContextualActionMode();
-    }
+//
+//    @ItemClick(android.R.id.list)
+//    void listItemClicked(StationPair item) {
+//        Intent intent = new Intent(RoutesListActivity.this,
+//                ViewDeparturesActivity.class);
+//        intent.putExtra(Constants.STATION_PAIR_EXTRA, item);
+//        startActivity(intent);
+//    }
+//
+//    @ItemLongClick(android.R.id.list)
+//    void listItemLongClick(StationPair item) {
+//        if (mActionMode != null) {
+//            mActionMode.finish();
+//        }
+//
+//        mCurrentlySelectedStationPair = item;
+//
+//        startContextualActionMode();
+//    }
 
     private DragSortListView.DropListener onDrop = new DragSortListView.DropListener() {
         @Override
@@ -142,15 +148,24 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
     void afterViews() {
         setTitle(R.string.favorite_routes);
 
+        List<StationPair> favorites = app.getFavorites();
         mRoutesAdapter = new FavoritesArrayAdapter(this,
-                R.layout.favorite_listing, app.getFavorites());
+                R.layout.favorite_listing, favorites);
 
-        setListAdapter(mRoutesAdapter);
+        stationPairAdapter = new StationPairAdapter(favorites);
+        listView.setAdapter(stationPairAdapter);
+        listView.setLayoutManager(new LinearLayoutManager(this));
+        RecyclerView.ItemDecoration itemDecoration = new
+                DividerItemDecoration(this, DividerItemDecoration.VERTICAL);
+        listView.addItemDecoration(itemDecoration);
 
-        listView.setEmptyView(findViewById(android.R.id.empty));
+//        setListAdapter(mRoutesAdapter);
+//
+//        listView.setEmptyView(findViewById(android.R.id.empty));
+//
+//        listView.setDropListener(onDrop);
+//        listView.setRemoveListener(onRemove);
 
-        listView.setDropListener(onDrop);
-        listView.setRemoveListener(onRemove);
 
         if (mCurrentAlerts != null) {
             showAlertMessage(mCurrentAlerts);
@@ -175,19 +190,19 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
 
         Ticker.getInstance().addSubscriber(this, getApplicationContext());
     }
-
-    private AdapterView<ListAdapter> getListView() {
-        return listView;
-    }
+//
+//    private AdapterView<ListAdapter> getListView() {
+//        return listView;
+//    }
 
     protected FavoritesArrayAdapter getListAdapter() {
         return mRoutesAdapter;
     }
-
-    protected void setListAdapter(FavoritesArrayAdapter adapter) {
-        mRoutesAdapter = adapter;
-        getListView().setAdapter(mRoutesAdapter);
-    }
+//
+//    protected void setListAdapter(FavoritesArrayAdapter adapter) {
+//        mRoutesAdapter = adapter;
+//        getListView().setAdapter(mRoutesAdapter);
+//    }
 
     void addFavorite(StationPair pair) {
         mRoutesAdapter.add(pair);
