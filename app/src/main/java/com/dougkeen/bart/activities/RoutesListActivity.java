@@ -19,9 +19,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
 import android.widget.Button;
-import android.widget.ListAdapter;
 import android.widget.TextView;
 
 import com.dougkeen.bart.BartRunnerApplication;
@@ -29,11 +27,12 @@ import com.dougkeen.bart.R;
 import com.dougkeen.bart.controls.Ticker;
 import com.dougkeen.bart.controls.Ticker.TickSubscriber;
 import com.dougkeen.bart.data.FavoritesArrayAdapter;
-import com.dougkeen.bart.data.StationPairAdapter;
+import com.dougkeen.bart.data.StationPairDepartureAdapter;
 import com.dougkeen.bart.model.Alert;
 import com.dougkeen.bart.model.Alert.AlertList;
 import com.dougkeen.bart.model.Constants;
 import com.dougkeen.bart.model.StationPair;
+import com.dougkeen.bart.model.StationPairDeparture;
 import com.dougkeen.bart.networktasks.AlertsClient;
 import com.dougkeen.bart.networktasks.ElevatorClient;
 import com.dougkeen.bart.networktasks.GetRouteFareTask;
@@ -45,12 +44,11 @@ import org.androidannotations.annotations.Background;
 import org.androidannotations.annotations.Click;
 import org.androidannotations.annotations.EActivity;
 import org.androidannotations.annotations.InstanceState;
-import org.androidannotations.annotations.ItemClick;
-import org.androidannotations.annotations.ItemLongClick;
 import org.androidannotations.annotations.UiThread;
 import org.androidannotations.annotations.ViewById;
 import org.androidannotations.rest.spring.annotations.RestService;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.TimeZone;
@@ -73,7 +71,7 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
     private ActionMode mActionMode;
 
     private FavoritesArrayAdapter mRoutesAdapter;
-    private StationPairAdapter stationPairAdapter;
+    private StationPairDepartureAdapter stationPairDepartureAdapter;
 
     @App
     BartRunnerApplication app;
@@ -151,13 +149,17 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
         mRoutesAdapter = new FavoritesArrayAdapter(this,
                 R.layout.favorite_listing, favorites);
 
-        stationPairAdapter = new StationPairAdapter(favorites);
-        listView.setAdapter(stationPairAdapter);
+        List<StationPairDeparture> stationPairDepartures = new ArrayList<>(favorites.size());
+        for (StationPair pair : favorites) {
+            stationPairDepartures.add(new StationPairDeparture(pair));
+        }
+        stationPairDepartureAdapter = new StationPairDepartureAdapter(stationPairDepartures);
+        listView.setAdapter(stationPairDepartureAdapter);
         listView.setLayoutManager(new LinearLayoutManager(this));
         RecyclerView.ItemDecoration itemDecoration = new
                 DividerItemDecoration(this, DividerItemDecoration.VERTICAL);
         listView.addItemDecoration(itemDecoration);
-        stationPairAdapter.setOnItemClickListener(new StationPairAdapter.OnStationPairClickListener() {
+        stationPairDepartureAdapter.setOnItemClickListener(new StationPairDepartureAdapter.OnStationPairClickListener() {
             @Override
             public void onStationPairClicked(StationPair stationPair) {
                 listItemClicked(stationPair);
