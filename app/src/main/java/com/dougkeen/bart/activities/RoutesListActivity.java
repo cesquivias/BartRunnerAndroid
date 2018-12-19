@@ -28,6 +28,7 @@ import com.dougkeen.bart.controls.Ticker;
 import com.dougkeen.bart.controls.Ticker.TickSubscriber;
 import com.dougkeen.bart.data.FavoritesArrayAdapter;
 import com.dougkeen.bart.data.StationPairDepartureAdapter;
+import com.dougkeen.bart.data.StationPairDepartureSynchronizer;
 import com.dougkeen.bart.model.Alert;
 import com.dougkeen.bart.model.Alert.AlertList;
 import com.dougkeen.bart.model.Constants;
@@ -72,6 +73,7 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
 
     private FavoritesArrayAdapter mRoutesAdapter;
     private StationPairDepartureAdapter stationPairDepartureAdapter;
+    private StationPairDepartureSynchronizer synchronizer;
 
     @App
     BartRunnerApplication app;
@@ -176,7 +178,9 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
             showAlertMessage(mCurrentAlerts);
         }
 
-        startEtdListeners();
+        synchronizer = new StationPairDepartureSynchronizer(stationPairDepartures);
+        synchronizer.open(this);
+        //startEtdListeners();
         refreshFares();
     }
 
