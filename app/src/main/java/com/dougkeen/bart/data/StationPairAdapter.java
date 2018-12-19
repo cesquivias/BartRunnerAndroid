@@ -1,7 +1,6 @@
 package com.dougkeen.bart.data;
 
 import android.support.annotation.NonNull;
-import android.support.v7.recyclerview.extensions.AsyncDifferConfig;
 import android.support.v7.recyclerview.extensions.ListAdapter;
 import android.support.v7.util.DiffUtil;
 import android.support.v7.widget.RecyclerView;
@@ -27,7 +26,9 @@ public class StationPairAdapter extends ListAdapter<StationPair, StationPairAdap
                     return oldItem.equals(newItem);
                 }
             };
+
     private final List<StationPair> stationPairs;
+    private OnStationPairClickListener onItemClickListener;
 
     public StationPairAdapter(List<StationPair> stationPairs) {
         super(DIFF_CALLBACK);
@@ -43,18 +44,36 @@ public class StationPairAdapter extends ListAdapter<StationPair, StationPairAdap
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder viewHolder, int i) {
-        StationPair pair = stationPairs.get(i);
+    public void onBindViewHolder(@NonNull ViewHolder viewHolder, final int i) {
+        final StationPair pair = stationPairs.get(i);
         viewHolder.originText.setText(pair.getOrigin().name);
         viewHolder.destinationText.setText(pair.getDestination().name);
+        viewHolder.row.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (onItemClickListener != null) {
+                    onItemClickListener.onStationPairClicked(pair);
+                }
+            }
+        });
+    }
+
+    public void setOnItemClickListener(OnStationPairClickListener onItemClickListener) {
+        this.onItemClickListener = onItemClickListener;
+    }
+
+    public interface OnStationPairClickListener {
+        void onStationPairClicked(StationPair stationPair);
     }
 
     public class ViewHolder extends RecyclerView.ViewHolder {
+        public final View row;
         public final TextView originText;
         public final TextView destinationText;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
+            row = itemView;
             originText = itemView.findViewById(R.id.originText);
             destinationText = itemView.findViewById(R.id.destinationText);
         }

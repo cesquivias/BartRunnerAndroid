@@ -101,14 +101,13 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
         DialogFragment dialog = new QuickRouteDialogFragment();
         dialog.show(getSupportFragmentManager(), QuickRouteDialogFragment.TAG);
     }
-//
-//    @ItemClick(android.R.id.list)
-//    void listItemClicked(StationPair item) {
-//        Intent intent = new Intent(RoutesListActivity.this,
-//                ViewDeparturesActivity.class);
-//        intent.putExtra(Constants.STATION_PAIR_EXTRA, item);
-//        startActivity(intent);
-//    }
+
+    void listItemClicked(StationPair item) {
+        Intent intent = new Intent(RoutesListActivity.this,
+                ViewDeparturesActivity.class);
+        intent.putExtra(Constants.STATION_PAIR_EXTRA, item);
+        startActivity(intent);
+    }
 //
 //    @ItemLongClick(android.R.id.list)
 //    void listItemLongClick(StationPair item) {
@@ -158,11 +157,15 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
         RecyclerView.ItemDecoration itemDecoration = new
                 DividerItemDecoration(this, DividerItemDecoration.VERTICAL);
         listView.addItemDecoration(itemDecoration);
+        stationPairAdapter.setOnItemClickListener(new StationPairAdapter.OnStationPairClickListener() {
+            @Override
+            public void onStationPairClicked(StationPair stationPair) {
+                listItemClicked(stationPair);
+            }
+        });
 
-//        setListAdapter(mRoutesAdapter);
-//
 //        listView.setEmptyView(findViewById(android.R.id.empty));
-//
+
 //        listView.setDropListener(onDrop);
 //        listView.setRemoveListener(onRemove);
 
@@ -190,19 +193,10 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
 
         Ticker.getInstance().addSubscriber(this, getApplicationContext());
     }
-//
-//    private AdapterView<ListAdapter> getListView() {
-//        return listView;
-//    }
 
     protected FavoritesArrayAdapter getListAdapter() {
         return mRoutesAdapter;
     }
-//
-//    protected void setListAdapter(FavoritesArrayAdapter adapter) {
-//        mRoutesAdapter = adapter;
-//        getListView().setAdapter(mRoutesAdapter);
-//    }
 
     void addFavorite(StationPair pair) {
         mRoutesAdapter.add(pair);
