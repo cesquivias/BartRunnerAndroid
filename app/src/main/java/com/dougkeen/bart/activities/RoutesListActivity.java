@@ -105,11 +105,25 @@ public class RoutesListActivity extends AppCompatActivity
     }
 
     private ItemTouchHelper.SimpleCallback itemTouchHelperCallback =
-            new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT|ItemTouchHelper.RIGHT) {
+            new ItemTouchHelper.SimpleCallback(
+                    ItemTouchHelper.UP|ItemTouchHelper.DOWN,
+                    ItemTouchHelper.LEFT|ItemTouchHelper.RIGHT) {
+                @Override
+                public boolean isLongPressDragEnabled() {
+                    return false;
+                }
 
                 @Override
-                public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder viewHolder1) {
-                    return false;
+                public boolean onMove(@NonNull RecyclerView recyclerView,
+                        @NonNull RecyclerView.ViewHolder viewHolder,
+                        @NonNull RecyclerView.ViewHolder target) {
+                    int position = viewHolder.getAdapterPosition();
+                    int targetPosition = target.getAdapterPosition();
+                    StationPairDeparture stationPairDeparture = stationPairDepartures.get(position);
+                    stationPairDepartures.remove(position);
+                    stationPairDepartures.add(targetPosition, stationPairDeparture);
+                    stationPairDepartureAdapter.notifyItemMoved(position, targetPosition);
+                    return true;
                 }
 
                 @Override
@@ -142,19 +156,6 @@ public class RoutesListActivity extends AppCompatActivity
         startContextualActionMode();
     }
 
-//    private DragSortListView.DropListener onDrop = new DragSortListView.DropListener() {
-//        @Override
-//        public void drop(int from, int to) {
-//            if (from == to)
-//                return;
-//
-//            StationPair item = mRoutesAdapter.getItem(from);
-//
-//            mRoutesAdapter.move(item, to);
-//            mRoutesAdapter.notifyDataSetChanged();
-//        }
-//    };
-
     @AfterViews
     void afterViews() {
         setTitle(R.string.favorite_routes);
@@ -164,18 +165,17 @@ public class RoutesListActivity extends AppCompatActivity
         for (StationPair pair : favorites) {
             stationPairDepartures.add(new StationPairDeparture(pair));
         }
-        stationPairDepartureAdapter = new StationPairDepartureAdapter(stationPairDepartures);
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(itemTouchHelperCallback);
+        itemTouchHelper.attachToRecyclerView(listView);
+        stationPairDepartureAdapter = new StationPairDepartureAdapter(stationPairDepartures, itemTouchHelper);
         listView.setAdapter(stationPairDepartureAdapter);
         listView.setLayoutManager(new LinearLayoutManager(this));
         RecyclerView.ItemDecoration itemDecoration = new
                 DividerItemDecoration(this, DividerItemDecoration.VERTICAL);
         listView.addItemDecoration(itemDecoration);
         stationPairDepartureAdapter.setOnItemClickListener(this);
-        new ItemTouchHelper(itemTouchHelperCallback)
-                .attachToRecyclerView(listView);
 
 //        listView.setEmptyView(findViewById(android.R.id.empty));
-//        listView.setDropListener(onDrop);
 
         if (mCurrentAlerts != null) {
             showAlertMessage(mCurrentAlerts);

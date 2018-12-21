@@ -5,7 +5,9 @@ import android.support.annotation.NonNull;
 import android.support.v7.recyclerview.extensions.ListAdapter;
 import android.support.v7.util.DiffUtil;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.helper.ItemTouchHelper;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AnimationUtils;
@@ -40,11 +42,14 @@ public class StationPairDepartureAdapter extends ListAdapter<StationPairDepartur
             };
 
     private final List<StationPairDeparture> stationPairDepartures;
+    private final ItemTouchHelper itemTouchHelper;
     private OnStationPairClickListener onItemClickListener;
 
-    public StationPairDepartureAdapter(List<StationPairDeparture> stationPairDepartures) {
+    public StationPairDepartureAdapter(List<StationPairDeparture> stationPairDepartures,
+            ItemTouchHelper itemTouchHelper) {
         super(DIFF_CALLBACK);
         this.stationPairDepartures = stationPairDepartures;
+        this.itemTouchHelper = itemTouchHelper;
     }
 
     @NonNull
@@ -56,7 +61,7 @@ public class StationPairDepartureAdapter extends ListAdapter<StationPairDepartur
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder viewHolder, final int i) {
+    public void onBindViewHolder(@NonNull final ViewHolder viewHolder, final int i) {
         final StationPairDeparture stationPairDeparture = stationPairDepartures.get(i);
         final StationPair pair = stationPairDeparture.getStationPair();
         viewHolder.originText.setText(pair.getOrigin().name);
@@ -83,7 +88,7 @@ public class StationPairDepartureAdapter extends ListAdapter<StationPairDepartur
         final Context context = viewHolder.row.getContext();
         initTextSwitcher(viewHolder.uncertaintyTextSwitcher, context);
 
-        if (/*etdListener == null ||*/ stationPairDeparture.getFirstDeparture() == null) {
+        if (stationPairDeparture.getFirstDeparture() == null) {
             viewHolder.uncertaintyTextSwitcher.setCurrentText(pair.getFare());
         } else {
             viewHolder.countdownTextView.setText(stationPairDeparture.getFirstDeparture()
@@ -124,6 +129,16 @@ public class StationPairDepartureAdapter extends ListAdapter<StationPairDepartur
                 }
             });
         }
+
+        viewHolder.dragHandle.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                    itemTouchHelper.startDrag(viewHolder);
+                }
+                return false;
+            }
+        });
     }
 
     private void initTextSwitcher(TextSwitcher textSwitcher, final Context context) {
@@ -158,6 +173,7 @@ public class StationPairDepartureAdapter extends ListAdapter<StationPairDepartur
         public final TextView destinationText;
         public final TimedTextSwitcher uncertaintyTextSwitcher;
         public final CountdownTextView countdownTextView;
+        public final View dragHandle;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -166,6 +182,7 @@ public class StationPairDepartureAdapter extends ListAdapter<StationPairDepartur
             destinationText = itemView.findViewById(R.id.destinationText);
             uncertaintyTextSwitcher = itemView.findViewById(R.id.uncertainty);
             countdownTextView = itemView.findViewById(R.id.countdownText);
+            dragHandle = itemView.findViewById(R.id.dragHandle);
         }
     }
 
