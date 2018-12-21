@@ -47,7 +47,7 @@ public class StationPairDepartureSynchronizer implements ServiceConnection {
         setUpEtdListeners();
     }
 
-    private void setUpEtdListeners() {
+    public void setUpEtdListeners() {
         if (mBound && mEtdService != null && !areEtdListenersActive()) {
             for (int i = stationPairDepartures.size() - 1; i >= 0; i--) {
                 final StationPairDeparture item = stationPairDepartures.get(i);

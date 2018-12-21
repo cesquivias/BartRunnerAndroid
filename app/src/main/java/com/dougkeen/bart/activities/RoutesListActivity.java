@@ -55,7 +55,7 @@ import java.util.List;
 import java.util.TimeZone;
 
 @EActivity(R.layout.main)
-public class RoutesListActivity extends AppCompatActivity implements TickSubscriber {
+public class RoutesListActivity extends AppCompatActivity implements TickSubscriber, StationPairDepartureSynchronizer.OnEtdChangeListener {
     private static final String NO_DELAYS_REPORTED = "No delays reported";
 
     private static final TimeZone PACIFIC_TIME = TimeZone
@@ -71,7 +71,8 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
 
     private ActionMode mActionMode;
 
-    private FavoritesArrayAdapter mRoutesAdapter;
+//    private FavoritesArrayAdapter mRoutesAdapter;
+    private List<StationPairDeparture> stationPairDepartures;
     private StationPairDepartureAdapter stationPairDepartureAdapter;
     private StationPairDepartureSynchronizer synchronizer;
 
@@ -119,39 +120,39 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
 //
 //        startContextualActionMode();
 //    }
-
-    private DragSortListView.DropListener onDrop = new DragSortListView.DropListener() {
-        @Override
-        public void drop(int from, int to) {
-            if (from == to)
-                return;
-
-            StationPair item = mRoutesAdapter.getItem(from);
-
-            mRoutesAdapter.move(item, to);
-            mRoutesAdapter.notifyDataSetChanged();
-        }
-    };
-
-    private DragSortListView.RemoveListener onRemove = new DragSortListView.RemoveListener() {
-        @Override
-        public void remove(final int which) {
-            final StationPair stationPair = mRoutesAdapter.getItem(which);
-            mRoutesAdapter.remove(stationPair);
-            mRoutesAdapter.notifyDataSetChanged();
-            showRouteDeletedSnackbar(which, stationPair);
-        }
-    };
+//
+//    private DragSortListView.DropListener onDrop = new DragSortListView.DropListener() {
+//        @Override
+//        public void drop(int from, int to) {
+//            if (from == to)
+//                return;
+//
+//            StationPair item = mRoutesAdapter.getItem(from);
+//
+//            mRoutesAdapter.move(item, to);
+//            mRoutesAdapter.notifyDataSetChanged();
+//        }
+//    };
+//
+//    private DragSortListView.RemoveListener onRemove = new DragSortListView.RemoveListener() {
+//        @Override
+//        public void remove(final int which) {
+//            final StationPair stationPair = mRoutesAdapter.getItem(which);
+//            mRoutesAdapter.remove(stationPair);
+//            mRoutesAdapter.notifyDataSetChanged();
+//            showRouteDeletedSnackbar(which, stationPair);
+//        }
+//    };
 
     @AfterViews
     void afterViews() {
         setTitle(R.string.favorite_routes);
 
         List<StationPair> favorites = app.getFavorites();
-        mRoutesAdapter = new FavoritesArrayAdapter(this,
-                R.layout.favorite_listing, favorites);
+//        mRoutesAdapter = new FavoritesArrayAdapter(this,
+//                R.layout.favorite_listing, favorites);
 
-        List<StationPairDeparture> stationPairDepartures = new ArrayList<>(favorites.size());
+        stationPairDepartures = new ArrayList<>(favorites.size());
         for (StationPair pair : favorites) {
             stationPairDepartures.add(new StationPairDeparture(pair));
         }
@@ -179,6 +180,7 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
         }
 
         synchronizer = new StationPairDepartureSynchronizer(stationPairDepartures);
+        synchronizer.setEtdChangeListener(this);
         synchronizer.open(this);
         //startEtdListeners();
         refreshFares();
@@ -200,17 +202,27 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
         Ticker.getInstance().addSubscriber(this, getApplicationContext());
     }
 
-    protected FavoritesArrayAdapter getListAdapter() {
-        return mRoutesAdapter;
+    @Override
+    public void onDepartureUpdate(StationPairDeparture stationPairDeparture) {
+        stationPairDepartureAdapter.notifyDataSetChanged();
     }
 
+//    protected FavoritesArrayAdapter getListAdapter() {
+//        return mRoutesAdapter;
+//    }
+
     void addFavorite(StationPair pair) {
-        mRoutesAdapter.add(pair);
+//        mRoutesAdapter.add(pair);
+        StationPairDeparture pairDeparture = new StationPairDeparture(pair);
+        stationPairDepartures.add(pairDeparture);
+        stationPairDepartureAdapter.notifyItemInserted(stationPairDepartures.size());
+        synchronizer.add(pairDeparture);
     }
 
     private void refreshFares() {
-        for (int i = getListAdapter().getCount() - 1; i >= 0; i--) {
-            final StationPair stationPair = getListAdapter().getItem(i);
+        for (int i = stationPairDepartures.size() - 1; i >= 0; i--) {
+            final StationPairDeparture stationPairDeparture = stationPairDepartures.get(i);
+            final StationPair stationPair = stationPairDeparture.getStationPair();
 
             Calendar now = Calendar.getInstance();
             Calendar lastUpdate = Calendar.getInstance();
@@ -227,7 +239,9 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
                     public void onResult(String fare) {
                         stationPair.setFare(fare);
                         stationPair.setFareLastUpdated(System.currentTimeMillis());
-                        getListAdapter().notifyDataSetChanged();
+//                        getListAdapter().notifyDataSetChanged();
+                        // TODO notify more granularly
+                        stationPairDepartureAdapter.notifyDataSetChanged();
                     }
 
                     @Override
@@ -255,34 +269,41 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
     }
 
     private void startEtdListeners() {
-        if (mRoutesAdapter != null && !mRoutesAdapter.isEmpty()
-                && !mRoutesAdapter.areEtdListenersActive()) {
-            mRoutesAdapter.setUpEtdListeners();
-        }
+//        if (mRoutesAdapter != null && !mRoutesAdapter.isEmpty()
+//                && !mRoutesAdapter.areEtdListenersActive()) {
+//            mRoutesAdapter.setUpEtdListeners();
+//        }
+        synchronizer.setUpEtdListeners();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if (mRoutesAdapter != null && mRoutesAdapter.areEtdListenersActive()) {
-            mRoutesAdapter.clearEtdListeners();
-        }
+//        if (mRoutesAdapter != null && mRoutesAdapter.areEtdListenersActive()) {
+//            mRoutesAdapter.clearEtdListeners();
+//        }
+        synchronizer.clearEtdListeners();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
         Ticker.getInstance().stopTicking(this);
+        List<StationPair> favorites = new ArrayList<>(stationPairDepartures.size());
+        for (StationPairDeparture stationPairDeparture : stationPairDepartures) {
+            favorites.add(stationPairDeparture.getStationPair());
+        }
+        app.setFavorites(favorites);
         app.saveFavorites();
-
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (mRoutesAdapter != null) {
-            mRoutesAdapter.close();
-        }
+//        if (mRoutesAdapter != null) {
+//            mRoutesAdapter.close();
+//        }
+        synchronizer.close(this);
     }
 
     @Override
@@ -407,17 +428,17 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
                 + mCurrentlySelectedStationPair.getDestination().name);
     }
 
-    private void showRouteDeletedSnackbar(final int which, final StationPair stationPair) {
-        Snackbar.make(coordinatorLayout, R.string.snackbar_route_deleted, Snackbar.LENGTH_LONG)
-                .setAction(R.string.undo, new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        mRoutesAdapter.insert(stationPair, which);
-                        mRoutesAdapter.notifyDataSetChanged();
-                    }
-                })
-                .show();
-    }
+//    private void showRouteDeletedSnackbar(final int which, final StationPair stationPair) {
+//        Snackbar.make(coordinatorLayout, R.string.snackbar_route_deleted, Snackbar.LENGTH_LONG)
+//                .setAction(R.string.undo, new View.OnClickListener() {
+//                    @Override
+//                    public void onClick(View view) {
+//                        mRoutesAdapter.insert(stationPair, which);
+//                        mRoutesAdapter.notifyDataSetChanged();
+//                    }
+//                })
+//                .show();
+//    }
 
     private final class RouteActionMode implements ActionMode.Callback {
         @Override
@@ -433,40 +454,40 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
 
         @Override
         public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-            if (item.getItemId() == R.id.view) {
-                Intent intent = new Intent(RoutesListActivity.this,
-                        ViewDeparturesActivity.class);
-                intent.putExtra(Constants.STATION_PAIR_EXTRA,
-                        mCurrentlySelectedStationPair);
-                startActivity(intent);
-                mode.finish();
-                return true;
-            } else if (item.getItemId() == R.id.delete) {
-                final AlertDialog.Builder builder = new AlertDialog.Builder(
-                        RoutesListActivity.this);
-                builder.setCancelable(false);
-                builder.setMessage("Are you sure you want to delete this route?");
-                builder.setPositiveButton(R.string.yes,
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog,
-                                                int which) {
-                                getListAdapter().remove(
-                                        mCurrentlySelectedStationPair);
-                                mCurrentlySelectedStationPair = null;
-                                mActionMode.finish();
-                                dialog.dismiss();
-                            }
-                        });
-                builder.setNegativeButton(R.string.cancel,
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog,
-                                                int which) {
-                                dialog.cancel();
-                            }
-                        });
-                builder.show();
-                return false;
-            }
+//            if (item.getItemId() == R.id.view) {
+//                Intent intent = new Intent(RoutesListActivity.this,
+//                        ViewDeparturesActivity.class);
+//                intent.putExtra(Constants.STATION_PAIR_EXTRA,
+//                        mCurrentlySelectedStationPair);
+//                startActivity(intent);
+//                mode.finish();
+//                return true;
+//            } else if (item.getItemId() == R.id.delete) {
+//                final AlertDialog.Builder builder = new AlertDialog.Builder(
+//                        RoutesListActivity.this);
+//                builder.setCancelable(false);
+//                builder.setMessage("Are you sure you want to delete this route?");
+//                builder.setPositiveButton(R.string.yes,
+//                        new DialogInterface.OnClickListener() {
+//                            public void onClick(DialogInterface dialog,
+//                                                int which) {
+//                                getListAdapter().remove(
+//                                        mCurrentlySelectedStationPair);
+//                                mCurrentlySelectedStationPair = null;
+//                                mActionMode.finish();
+//                                dialog.dismiss();
+//                            }
+//                        });
+//                builder.setNegativeButton(R.string.cancel,
+//                        new DialogInterface.OnClickListener() {
+//                            public void onClick(DialogInterface dialog,
+//                                                int which) {
+//                                dialog.cancel();
+//                            }
+//                        });
+//                builder.show();
+//                return false;
+//            }
 
             return false;
         }
