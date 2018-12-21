@@ -4,7 +4,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.CoordinatorLayout;
-import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.view.MenuItemCompat;
@@ -26,7 +25,6 @@ import com.dougkeen.bart.BartRunnerApplication;
 import com.dougkeen.bart.R;
 import com.dougkeen.bart.controls.Ticker;
 import com.dougkeen.bart.controls.Ticker.TickSubscriber;
-import com.dougkeen.bart.data.FavoritesArrayAdapter;
 import com.dougkeen.bart.data.StationPairDepartureAdapter;
 import com.dougkeen.bart.data.StationPairDepartureSynchronizer;
 import com.dougkeen.bart.model.Alert;
@@ -37,7 +35,6 @@ import com.dougkeen.bart.model.StationPairDeparture;
 import com.dougkeen.bart.networktasks.AlertsClient;
 import com.dougkeen.bart.networktasks.ElevatorClient;
 import com.dougkeen.bart.networktasks.GetRouteFareTask;
-import com.mobeta.android.dslv.DragSortListView;
 
 import org.androidannotations.annotations.AfterViews;
 import org.androidannotations.annotations.App;
@@ -55,7 +52,9 @@ import java.util.List;
 import java.util.TimeZone;
 
 @EActivity(R.layout.main)
-public class RoutesListActivity extends AppCompatActivity implements TickSubscriber, StationPairDepartureSynchronizer.OnEtdChangeListener {
+public class RoutesListActivity extends AppCompatActivity
+        implements TickSubscriber, StationPairDepartureSynchronizer.OnEtdChangeListener,
+        StationPairDepartureAdapter.OnStationPairClickListener {
     private static final String NO_DELAYS_REPORTED = "No delays reported";
 
     private static final TimeZone PACIFIC_TIME = TimeZone
@@ -64,14 +63,13 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
     private static final String TAG = "RoutesListActivity";
 
     @InstanceState
-    StationPair mCurrentlySelectedStationPair;
+    StationPairDeparture mCurrentlySelectedStationPair;
 
     @InstanceState
     String mCurrentAlerts;
 
     private ActionMode mActionMode;
 
-//    private FavoritesArrayAdapter mRoutesAdapter;
     private List<StationPairDeparture> stationPairDepartures;
     private StationPairDepartureAdapter stationPairDepartureAdapter;
     private StationPairDepartureSynchronizer synchronizer;
@@ -103,24 +101,26 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
         dialog.show(getSupportFragmentManager(), QuickRouteDialogFragment.TAG);
     }
 
-    void listItemClicked(StationPair item) {
+
+    @Override
+    public void onStationPairClicked(StationPairDeparture item) {
         Intent intent = new Intent(RoutesListActivity.this,
                 ViewDeparturesActivity.class);
-        intent.putExtra(Constants.STATION_PAIR_EXTRA, item);
+        intent.putExtra(Constants.STATION_PAIR_EXTRA, item.getStationPair());
         startActivity(intent);
     }
-//
-//    @ItemLongClick(android.R.id.list)
-//    void listItemLongClick(StationPair item) {
-//        if (mActionMode != null) {
-//            mActionMode.finish();
-//        }
-//
-//        mCurrentlySelectedStationPair = item;
-//
-//        startContextualActionMode();
-//    }
-//
+
+    @Override
+    public void onStationPairLongClicked(StationPairDeparture stationPairDeparture) {
+        if (mActionMode != null) {
+            mActionMode.finish();
+        }
+
+        mCurrentlySelectedStationPair = stationPairDeparture;
+
+        startContextualActionMode();
+    }
+
 //    private DragSortListView.DropListener onDrop = new DragSortListView.DropListener() {
 //        @Override
 //        public void drop(int from, int to) {
@@ -149,9 +149,6 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
         setTitle(R.string.favorite_routes);
 
         List<StationPair> favorites = app.getFavorites();
-//        mRoutesAdapter = new FavoritesArrayAdapter(this,
-//                R.layout.favorite_listing, favorites);
-
         stationPairDepartures = new ArrayList<>(favorites.size());
         for (StationPair pair : favorites) {
             stationPairDepartures.add(new StationPairDeparture(pair));
@@ -162,12 +159,7 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
         RecyclerView.ItemDecoration itemDecoration = new
                 DividerItemDecoration(this, DividerItemDecoration.VERTICAL);
         listView.addItemDecoration(itemDecoration);
-        stationPairDepartureAdapter.setOnItemClickListener(new StationPairDepartureAdapter.OnStationPairClickListener() {
-            @Override
-            public void onStationPairClicked(StationPair stationPair) {
-                listItemClicked(stationPair);
-            }
-        });
+        stationPairDepartureAdapter.setOnItemClickListener(this);
 
 //        listView.setEmptyView(findViewById(android.R.id.empty));
 
@@ -182,7 +174,6 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
         synchronizer = new StationPairDepartureSynchronizer(stationPairDepartures);
         synchronizer.setEtdChangeListener(this);
         synchronizer.open(this);
-        //startEtdListeners();
         refreshFares();
     }
 
@@ -207,12 +198,7 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
         stationPairDepartureAdapter.notifyDataSetChanged();
     }
 
-//    protected FavoritesArrayAdapter getListAdapter() {
-//        return mRoutesAdapter;
-//    }
-
     void addFavorite(StationPair pair) {
-//        mRoutesAdapter.add(pair);
         StationPairDeparture pairDeparture = new StationPairDeparture(pair);
         stationPairDepartures.add(pairDeparture);
         stationPairDepartureAdapter.notifyItemInserted(stationPairDepartures.size());
@@ -269,19 +255,12 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
     }
 
     private void startEtdListeners() {
-//        if (mRoutesAdapter != null && !mRoutesAdapter.isEmpty()
-//                && !mRoutesAdapter.areEtdListenersActive()) {
-//            mRoutesAdapter.setUpEtdListeners();
-//        }
         synchronizer.setUpEtdListeners();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-//        if (mRoutesAdapter != null && mRoutesAdapter.areEtdListenersActive()) {
-//            mRoutesAdapter.clearEtdListeners();
-//        }
         synchronizer.clearEtdListeners();
     }
 
@@ -423,9 +402,9 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
 
     private void startContextualActionMode() {
         mActionMode = startSupportActionMode(new RouteActionMode());
-        mActionMode.setTitle(mCurrentlySelectedStationPair.getOrigin().name);
+        mActionMode.setTitle(mCurrentlySelectedStationPair.getStationPair().getOrigin().name);
         mActionMode.setSubtitle("to "
-                + mCurrentlySelectedStationPair.getDestination().name);
+                + mCurrentlySelectedStationPair.getStationPair().getDestination().name);
     }
 
 //    private void showRouteDeletedSnackbar(final int which, final StationPair stationPair) {
@@ -454,40 +433,40 @@ public class RoutesListActivity extends AppCompatActivity implements TickSubscri
 
         @Override
         public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-//            if (item.getItemId() == R.id.view) {
-//                Intent intent = new Intent(RoutesListActivity.this,
-//                        ViewDeparturesActivity.class);
-//                intent.putExtra(Constants.STATION_PAIR_EXTRA,
-//                        mCurrentlySelectedStationPair);
-//                startActivity(intent);
-//                mode.finish();
-//                return true;
-//            } else if (item.getItemId() == R.id.delete) {
-//                final AlertDialog.Builder builder = new AlertDialog.Builder(
-//                        RoutesListActivity.this);
-//                builder.setCancelable(false);
-//                builder.setMessage("Are you sure you want to delete this route?");
-//                builder.setPositiveButton(R.string.yes,
-//                        new DialogInterface.OnClickListener() {
-//                            public void onClick(DialogInterface dialog,
-//                                                int which) {
-//                                getListAdapter().remove(
-//                                        mCurrentlySelectedStationPair);
-//                                mCurrentlySelectedStationPair = null;
-//                                mActionMode.finish();
-//                                dialog.dismiss();
-//                            }
-//                        });
-//                builder.setNegativeButton(R.string.cancel,
-//                        new DialogInterface.OnClickListener() {
-//                            public void onClick(DialogInterface dialog,
-//                                                int which) {
-//                                dialog.cancel();
-//                            }
-//                        });
-//                builder.show();
-//                return false;
-//            }
+            if (item.getItemId() == R.id.view) {
+                Intent intent = new Intent(RoutesListActivity.this,
+                        ViewDeparturesActivity.class);
+                intent.putExtra(Constants.STATION_PAIR_EXTRA,
+                        mCurrentlySelectedStationPair);
+                startActivity(intent);
+                mode.finish();
+                return true;
+            } else if (item.getItemId() == R.id.delete) {
+                final AlertDialog.Builder builder = new AlertDialog.Builder(
+                        RoutesListActivity.this);
+                builder.setCancelable(false);
+                builder.setMessage("Are you sure you want to delete this route?");
+                builder.setPositiveButton(R.string.yes,
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                int position = stationPairDepartures.indexOf(mCurrentlySelectedStationPair);
+                                stationPairDepartures.remove(position);
+                                stationPairDepartureAdapter.notifyItemRemoved(position);
+                                mCurrentlySelectedStationPair = null;
+                                mActionMode.finish();
+                                dialog.dismiss();
+                            }
+                        });
+                builder.setNegativeButton(R.string.cancel,
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog,
+                                                int which) {
+                                dialog.cancel();
+                            }
+                        });
+                builder.show();
+                return false;
+            }
 
             return false;
         }

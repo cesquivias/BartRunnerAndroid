@@ -65,8 +65,18 @@ public class StationPairDepartureAdapter extends ListAdapter<StationPairDepartur
             @Override
             public void onClick(View v) {
                 if (onItemClickListener != null) {
-                    onItemClickListener.onStationPairClicked(pair);
+                    onItemClickListener.onStationPairClicked(stationPairDeparture);
                 }
+            }
+        });
+        viewHolder.row.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                if (onItemClickListener != null) {
+                    onItemClickListener.onStationPairLongClicked(stationPairDeparture);
+                    return true;
+                }
+                return false;
             }
         });
 
@@ -137,7 +147,9 @@ public class StationPairDepartureAdapter extends ListAdapter<StationPairDepartur
     }
 
     public interface OnStationPairClickListener {
-        void onStationPairClicked(StationPair stationPair);
+        void onStationPairClicked(StationPairDeparture stationPair);
+
+        void onStationPairLongClicked(StationPairDeparture stationPair);
     }
 
     public class ViewHolder extends RecyclerView.ViewHolder {
