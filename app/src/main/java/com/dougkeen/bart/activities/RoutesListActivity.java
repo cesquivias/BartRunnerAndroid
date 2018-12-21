@@ -3,7 +3,9 @@ package com.dougkeen.bart.activities;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.design.widget.CoordinatorLayout;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.view.MenuItemCompat;
@@ -13,6 +15,7 @@ import android.support.v7.view.ActionMode;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.helper.ItemTouchHelper;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -101,6 +104,24 @@ public class RoutesListActivity extends AppCompatActivity
         dialog.show(getSupportFragmentManager(), QuickRouteDialogFragment.TAG);
     }
 
+    private ItemTouchHelper.SimpleCallback itemTouchHelperCallback =
+            new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT|ItemTouchHelper.RIGHT) {
+
+                @Override
+                public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder viewHolder1) {
+                    return false;
+                }
+
+                @Override
+                public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int dir) {
+                    int position = viewHolder.getAdapterPosition();
+                    StationPairDeparture stationPairDeparture = stationPairDepartures.get(
+                            position);
+                    stationPairDepartures.remove(position);
+                    stationPairDepartureAdapter.notifyItemRemoved(position);
+                    showRouteDeletedSnackbar(position, stationPairDeparture);
+                }
+            };
 
     @Override
     public void onStationPairClicked(StationPairDeparture item) {
@@ -133,16 +154,6 @@ public class RoutesListActivity extends AppCompatActivity
 //            mRoutesAdapter.notifyDataSetChanged();
 //        }
 //    };
-//
-//    private DragSortListView.RemoveListener onRemove = new DragSortListView.RemoveListener() {
-//        @Override
-//        public void remove(final int which) {
-//            final StationPair stationPair = mRoutesAdapter.getItem(which);
-//            mRoutesAdapter.remove(stationPair);
-//            mRoutesAdapter.notifyDataSetChanged();
-//            showRouteDeletedSnackbar(which, stationPair);
-//        }
-//    };
 
     @AfterViews
     void afterViews() {
@@ -160,12 +171,11 @@ public class RoutesListActivity extends AppCompatActivity
                 DividerItemDecoration(this, DividerItemDecoration.VERTICAL);
         listView.addItemDecoration(itemDecoration);
         stationPairDepartureAdapter.setOnItemClickListener(this);
+        new ItemTouchHelper(itemTouchHelperCallback)
+                .attachToRecyclerView(listView);
 
 //        listView.setEmptyView(findViewById(android.R.id.empty));
-
 //        listView.setDropListener(onDrop);
-//        listView.setRemoveListener(onRemove);
-
 
         if (mCurrentAlerts != null) {
             showAlertMessage(mCurrentAlerts);
@@ -407,17 +417,18 @@ public class RoutesListActivity extends AppCompatActivity
                 + mCurrentlySelectedStationPair.getStationPair().getDestination().name);
     }
 
-//    private void showRouteDeletedSnackbar(final int which, final StationPair stationPair) {
-//        Snackbar.make(coordinatorLayout, R.string.snackbar_route_deleted, Snackbar.LENGTH_LONG)
-//                .setAction(R.string.undo, new View.OnClickListener() {
-//                    @Override
-//                    public void onClick(View view) {
-//                        mRoutesAdapter.insert(stationPair, which);
-//                        mRoutesAdapter.notifyDataSetChanged();
-//                    }
-//                })
-//                .show();
-//    }
+    private void showRouteDeletedSnackbar(final int position,
+            final StationPairDeparture stationPairDeparture) {
+        Snackbar.make(coordinatorLayout, R.string.snackbar_route_deleted, Snackbar.LENGTH_LONG)
+                .setAction(R.string.undo, new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        stationPairDepartures.add(position, stationPairDeparture);
+                        stationPairDepartureAdapter.notifyItemInserted(position);
+                    }
+                })
+                .show();
+    }
 
     private final class RouteActionMode implements ActionMode.Callback {
         @Override

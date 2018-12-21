@@ -33,7 +33,7 @@ public class StationPairDepartureAdapter extends ListAdapter<StationPairDepartur
                     return oldItem == newItem;
                 }
                 @Override
-                public boolean areContentsTheSame(StationPairDeparture oldItem,
+                public boolean areContentsTheSame(@NonNull StationPairDeparture oldItem,
                         @NonNull StationPairDeparture newItem) {
                     return newItem.equals(oldItem);
                 }
